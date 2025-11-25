@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SnapSell AI - 一秒生成你的爆款賣場</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans TC', sans-serif; }
+        .gradient-text {
+            background: linear-gradient(to right, #4f46e5, #9333ea);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        /* 模擬掃描線動畫 */
+        .scan-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #4f46e5;
+            box-shadow: 0 0 10px #4f46e5;
+            animation: scan 2s infinite;
+            display: none;
+        }
+        @keyframes scan {
+            0% { top: 0; }
+            50% { top: 100%; }
+            100% { top: 0; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- 導航列 -->
+    <nav class="w-full py-4 px-6 flex justify-between items-center bg-white shadow-sm fixed top-0 z-50">
+        <div class="text-2xl font-bold tracking-tighter text-indigo-600">SnapSell AI</div>
+        <div>
+            <a href="#features" class="hidden md:inline-block mr-6 text-gray-600 hover:text-indigo-600">功能介紹</a>
+            <a href="#pricing" class="hidden md:inline-block mr-6 text-gray-600 hover:text-indigo-600">價格方案</a>
+            <button class="bg-indigo-600 text-white px-5 py-2 rounded-full hover:bg-indigo-700 transition">免費試用</button>
+        </div>
+    </nav>
+
+    <!-- Hero Section (主視覺區) -->
+    <section class="pt-32 pb-20 px-6">
+        <div class="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+            <!-- 左側文字 -->
+            <div>
+                <span class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-sm font-medium mb-4 inline-block">AI 電商神器 🚀</span>
+                <h1 class="text-5xl md:text-6xl font-bold leading-tight mb-6">
+                    拍照即上架 <br>
+                    <span class="gradient-text">銷售快人一步</span>
+                </h1>
+                <p class="text-xl text-gray-500 mb-8">
+                    只要一張照片，AI 自動幫你修圖去雜物、辨識商品屬性、撰寫 SEO 賣點文案，並依據大數據建議售價。
+                </p>
+                <div class="flex gap-4">
+                    <button onclick="document.getElementById('demo-section').scrollIntoView({behavior: 'smooth'})" class="bg-indigo-600 text-white px-8 py-4 rounded-lg text-lg font-bold shadow-lg hover:bg-indigo-700 transition hover:-translate-y-1">
+                        立即體驗 AI 上架
+                    </button>
+                    <button class="border border-gray-300 bg-white text-gray-700 px-8 py-4 rounded-lg text-lg font-bold hover:bg-gray-50 transition">
+                        觀看影片
+                    </button>
+                </div>
+                <p class="mt-4 text-sm text-gray-400">已有超過 10,000+ 位賣家正在使用</p>
+            </div>
+
+            <!-- 右側互動演示區 -->
+            <div class="relative" id="demo-section">
+                <div class="absolute -top-10 -right-10 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+                <div class="absolute -bottom-10 -left-10 w-72 h-72 bg-indigo-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+                
+                <!-- 模擬 App 介面 -->
+                <div class="relative glass-card rounded-2xl p-6 shadow-2xl border border-white/50">
+                    <div class="flex justify-between items-center mb-4 border-b pb-2">
+                        <div class="text-sm font-bold text-gray-500">AI 上架助手</div>
+                        <div class="flex gap-1">
+                            <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                        </div>
+                    </div>
+
+                    <!-- 演示內容區 -->
+                    <div class="bg-gray-100 rounded-xl h-80 relative overflow-hidden flex flex-col items-center justify-center text-center p-4" id="demo-screen">
+                        <!-- 初始狀態 -->
+                        <div id="state-initial">
+                            <div class="text-6xl mb-4">📸</div>
+                            <p class="text-gray-500 mb-4">上傳一張亂亂的商品照</p>
+                            <button onclick="startDemo()" class="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800">模擬上傳照片</button>
+                        </div>
+
+                        <!-- 處理中狀態 (隱藏) -->
+                        <div id="state-processing" class="hidden w-full h-full absolute top-0 left-0 bg-gray-900/80 backdrop-blur-sm flex flex-col items-center justify-center text-white z-10">
+                            <div class="scan-line" style="display:block;"></div>
+                            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-white mb-4"></div>
+                            <p id="process-text" class="text-lg font-mono">AI 識別中...</p>
+                        </div>
+
+                        <!-- 完成狀態 (隱藏) -->
+                        <div id="state-result" class="hidden text-left w-full h-full overflow-y-auto bg-white p-4">
+                            <div class="w-full h-32 bg-gray-200 rounded-lg mb-3 flex items-center justify-center text-gray-400 text-sm relative overflow-hidden">
+                                <img src="https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?auto=format&fit=crop&q=80&w=300&h=200" class="w-full h-full object-cover" alt="Clean Chair">
+                                <div class="absolute bottom-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded">已去背修圖</div>
+                            </div>
+                            <h3 class="font-bold text-lg text-gray-800">北歐風實木餐椅 - 9成新</h3>
+                            <p class="text-xs text-gray-500 mt-1">關鍵字: #HermanMiller #人體工學 #辦公椅</p>
+                            <div class="mt-3 text-sm text-gray-600 bg-gray-50 p-2 rounded border">
+                                <p>✅ 義大利進口真皮材質</p>
+                                <p>✅ 實木椅腳，無刮痕</p>
+                                <p>✅ 適合客廳或書房使用</p>
+                            </div>
+                            <div class="mt-3 flex justify-between items-center">
+                                <div>
+                                    <span class="text-xs text-gray-400">AI 建議售價</span>
+                                    <div class="text-xl font-bold text-indigo-600">$4,500</div>
+                                </div>
+                                <button class="bg-indigo-600 text-white px-3 py-1 rounded text-sm">確認發布</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 功能特點 -->
+    <section id="features" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">不只是修圖，是全能 AI 銷售員</h2>
+                <p class="text-gray-500">我們整合了電腦視覺與大型語言模型，解決賣家最頭痛的問題</p>
+            </div>
+            
+            <div class="grid md:grid-cols-3 gap-10">
+                <!-- Feature 1 -->
+                <div class="p-8 rounded-2xl bg-gray-50 hover:bg-indigo-50 transition group">
+                    <div class="w-14 h-14 bg-indigo-100 rounded-xl flex items-center justify-center text-2xl mb-6 group-hover:bg-indigo-600 group-hover:text-white transition">✨</div>
+                    <h3 class="text-xl font-bold mb-3">智能修圖去雜物</h3>
+                    <p class="text-gray-500">桌上的垃圾、背後的電線自動消失。AI 還能補上高質感的生活背景，就像在攝影棚拍的一樣。</p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="p-8 rounded-2xl bg-gray-50 hover:bg-indigo-50 transition group">
+                    <div class="w-14 h-14 bg-indigo-100 rounded-xl flex items-center justify-center text-2xl mb-6 group-hover:bg-indigo-600 group-hover:text-white transition">👁️</div>
+                    <h3 class="text-xl font-bold mb-3">自動辨識與寫作</h3>
+                    <p class="text-gray-500">不管是椅子還是包包，AI 一眼認出品牌、材質與新舊程度，自動生成吸引人的 SEO 文案。</p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="p-8 rounded-2xl bg-gray-50 hover:bg-indigo-50 transition group">
+                    <div class="w-14 h-14 bg-indigo-100 rounded-xl flex items-center justify-center text-2xl mb-6 group-hover:bg-indigo-600 group-hover:text-white transition">💰</div>
+                    <h3 class="text-xl font-bold mb-3">市場定價建議</h3>
+                    <p class="text-gray-500">即時比對各大拍賣平台行情，告訴你這個商品現在能賣多少錢，定價不再憑感覺。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-20 bg-indigo-900 text-white text-center px-6">
+        <div class="max-w-3xl mx-auto">
+            <h2 class="text-3xl md:text-4xl font-bold mb-6">準備好讓 AI 幫你賣東西了嗎？</h2>
+            <p class="text-indigo-200 text-lg mb-8">告別繁瑣的修圖與打字，現在註冊，首月免費處理 100 張照片。</p>
+            <div class="flex flex-col md:flex-row justify-center gap-4">
+                <input type="email" placeholder="輸入你的 Email" class="px-6 py-4 rounded-lg text-gray-800 w-full md:w-80 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                <button class="bg-indigo-500 hover:bg-indigo-600 px-8 py-4 rounded-lg font-bold transition w-full md:w-auto">開始免費使用</button>
+            </div>
+            <p class="mt-4 text-xs text-indigo-300">無需綁定信用卡</p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-gray-400 py-8 px-6 text-center text-sm">
+        <p>&copy; 2025 SnapSell AI. All rights reserved.</p>
+    </footer>
+
+    <!-- 簡單的 JS 來模擬 AI 運作過程 -->
+    <script>
+        function startDemo() {
+            const initial = document.getElementById('state-initial');
+            const processing = document.getElementById('state-processing');
+            const result = document.getElementById('state-result');
+            const text = document.getElementById('process-text');
+
+            // 隱藏初始，顯示處理中
+            initial.classList.add('hidden');
+            processing.classList.remove('hidden');
+            processing.classList.add('flex');
+
+            // 模擬步驟文字變化
+            setTimeout(() => { text.innerText = "🧹 移除雜物中..."; }, 800);
+            setTimeout(() => { text.innerText = "✨ 生成背景中..."; }, 1600);
+            setTimeout(() => { text.innerText = "📝 辨識材質與寫作..."; }, 2400);
+            setTimeout(() => { text.innerText = "💰 市場比價計算..."; }, 3200);
+
+            // 顯示結果
+            setTimeout(() => {
+                processing.classList.remove('flex');
+                processing.classList.add('hidden');
+                result.classList.remove('hidden');
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
