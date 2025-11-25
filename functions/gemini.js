@@ -32,10 +32,10 @@ export async function onRequest(context) {
 
     // 嘗試多種模型與端點組合
     const attempts = [
-      { version: "v1beta", model: "gemini-1.5-flash-001" },
       { version: "v1beta", model: "gemini-1.5-flash" },
-      { version: "v1beta", model: "gemini-1.5-pro-001" },
-      { version: "v1beta", model: "gemini-pro-vision" },
+      { version: "v1beta", model: "gemini-1.5-flash-001" },
+      { version: "v1beta", model: "gemini-1.5-flash-latest" },
+      { version: "v1beta", model: "gemini-1.5-flash-lite" },
     ];
 
     let lastError = null;
