@@ -3,17 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SnapSell AI - Cloudflare Functions 版</title>
+    <title>SnapSell AI - Pro Studio</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
                     colors: {
-                        dark: { 900: '#0f172a', 800: '#1e293b', 700: '#334155' }
+                        void: { 950: '#030303', 900: '#0a0a0a', 800: '#171717' },
+                        indigo: { 500: '#6366f1', 600: '#4f46e5' }
                     },
                     animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                         'scan': 'scan 1.5s linear infinite',
                     },
                     keyframes: {
@@ -26,74 +30,156 @@
             }
         }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Noto Sans TC', sans-serif; background: #0b0f19; color: #e2e8f0; }
-        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
-        .img-enhanced { filter: contrast(1.1) brightness(1.1) saturate(1.1); transition: filter 1s ease; }
+        body { background-color: #030303; color: #ffffff; }
+        
+        /* 高級毛玻璃 */
+        .glass {
+            background: rgba(23, 23, 23, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        /* 上傳區互動 */
+        .upload-zone {
+            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%23333' stroke-width='2' stroke-dasharray='12%2c 12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+            transition: all 0.3s ease;
+        }
+        .upload-zone:hover {
+            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%236366f1' stroke-width='2' stroke-dasharray='12%2c 12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+            background-color: rgba(99, 102, 241, 0.05);
+        }
+
+        /* 圖片特效 */
+        .img-enhanced {
+            filter: contrast(1.1) brightness(1.1) saturate(1.1);
+            transition: filter 1s ease;
+        }
+        
+        /* 隱藏原生 File Input */
+        input[type="file"] { display: none; }
     </style>
 </head>
-<body class="h-screen flex flex-col lg:flex-row overflow-hidden">
+<body class="h-screen flex flex-col lg:flex-row overflow-hidden selection:bg-indigo-500/30">
 
-    <!-- 左側控制區 -->
-    <div class="w-full lg:w-[450px] bg-dark-900 border-r border-white/10 flex flex-col z-20 shadow-2xl">
-        <div class="p-6 border-b border-white/10">
-            <h1 class="text-2xl font-bold text-white tracking-wider">SnapSell <span class="text-indigo-500">AI</span></h1>
-            <p class="text-xs text-gray-400 mt-1">Serverless Backend Mode</p>
+    <!-- 左側操作面板 -->
+    <div class="w-full lg:w-[450px] bg-void-950 border-r border-white/5 flex flex-col z-20 relative shadow-2xl">
+        <div class="p-8 border-b border-white/5">
+            <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-3">
+                <span class="w-3 h-3 bg-indigo-500 rounded-full shadow-[0_0_15px_rgba(99,102,241,0.5)]"></span>
+                SnapSell <span class="text-gray-500 font-light">Pro</span>
+            </h1>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-6 space-y-8">
-            <div class="space-y-3">
-                <label class="text-xs font-bold text-gray-400 uppercase">1. 上傳照片</label>
-                <div class="relative group cursor-pointer" onclick="document.getElementById('fileInput').click()">
-                    <div class="h-48 rounded-xl border-2 border-dashed border-gray-700 hover:border-indigo-500 transition flex flex-col items-center justify-center bg-dark-800 relative overflow-hidden">
-                        <img id="thumbPreview" class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-500">
-                        <div id="uploadPlaceholder" class="text-center z-10 p-4">
-                            <div class="text-4xl mb-2">☁️</div>
-                            <p class="text-sm text-gray-300">點擊上傳</p>
-                            <p class="text-xs text-gray-500 mt-1">透過 Cloudflare 安全連線</p>
-                        </div>
-                    </div>
-                    <input type="file" id="fileInput" accept="image/*" class="hidden">
+        <div class="flex-1 overflow-y-auto p-8 space-y-10">
+            <!-- 上傳區 (關鍵修復：使用 Label 讓整個區域可點擊) -->
+            <div class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-widest">Upload Image</h2>
                 </div>
+                
+                <label for="fileInput" class="upload-zone block w-full aspect-[4/3] rounded-2xl cursor-pointer relative overflow-hidden group">
+                    <!-- 預覽圖 -->
+                    <img id="thumbPreview" class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-500 z-0">
+                    
+                    <!-- 提示文字 -->
+                    <div id="uploadPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10 transition-transform duration-300 group-hover:scale-105">
+                        <div class="w-16 h-16 rounded-full bg-void-800 flex items-center justify-center mb-4 border border-white/10 group-hover:border-indigo-500/50 group-hover:text-indigo-400 transition-colors">
+                            <svg class="w-6 h-6 text-gray-400 group-hover:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        </div>
+                        <p class="text-sm font-medium text-gray-300">Click to upload</p>
+                        <p class="text-xs text-gray-600 mt-1">Supports JPG, PNG</p>
+                    </div>
+                </label>
+                <!-- 這是真正的輸入框，被 label 綁定 -->
+                <input type="file" id="fileInput" accept="image/*">
             </div>
 
-            <div class="space-y-4 opacity-50 pointer-events-none transition-all duration-300" id="controls">
-                <label class="text-xs font-bold text-gray-400 uppercase">2. AI 處理</label>
-                <button id="runBtn" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-white transition shadow-lg flex items-center justify-center gap-2">
-                    <span id="btnText">✨ 一鍵生成賣場</span>
-                    <svg id="btnLoading" class="hidden animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <!-- 控制區 -->
+            <div class="space-y-6 opacity-50 pointer-events-none transition-all duration-500" id="controls">
+                <div class="space-y-3">
+                    <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-widest">AI Options</h2>
+                    <div class="glass p-4 rounded-xl flex items-center justify-between group hover:bg-white/5 transition">
+                        <span class="text-sm text-gray-300">Background Removal</span>
+                        <div class="w-4 h-4 rounded-full border border-white/20 group-hover:border-indigo-500 group-hover:bg-indigo-500/20 transition"></div>
+                    </div>
+                    <div class="glass p-4 rounded-xl flex items-center justify-between group hover:bg-white/5 transition">
+                        <span class="text-sm text-gray-300">SEO Optimization</span>
+                        <div class="w-4 h-4 rounded-full border border-white/20 group-hover:border-indigo-500 group-hover:bg-indigo-500/20 transition"></div>
+                    </div>
+                </div>
+
+                <button id="runBtn" class="w-full relative group overflow-hidden rounded-xl bg-white text-black font-bold py-4 transition-all hover:scale-[1.01] active:scale-[0.99] shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+                    <span id="btnText" class="relative z-10 flex items-center justify-center gap-2">
+                        ✨ Generate Listing
+                    </span>
+                    <div id="btnLoading" class="hidden relative z-10 flex items-center justify-center">
+                        <svg class="animate-spin h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    </div>
                 </button>
-                <div id="errorLog" class="hidden p-3 bg-red-900/30 border border-red-500/50 rounded text-red-200 text-xs break-all font-mono"></div>
+
+                <!-- 錯誤訊息顯示 -->
+                <div id="errorLog" class="hidden p-4 rounded-lg bg-red-900/20 border border-red-500/20 text-red-200 text-xs font-mono break-all"></div>
             </div>
+        </div>
+        
+        <div class="p-6 text-center border-t border-white/5">
+            <p class="text-[10px] text-gray-600 font-mono tracking-[0.2em]">POWERED BY CLOUDFLARE</p>
         </div>
     </div>
 
     <!-- 右側預覽區 -->
-    <div class="flex-1 bg-[#0b0f19] relative overflow-y-auto p-6 lg:p-12">
-        <div class="max-w-6xl mx-auto glass rounded-2xl overflow-hidden shadow-2xl flex flex-col md:flex-row opacity-0 translate-y-10 transition-all duration-700" id="resultCard">
-            <div class="w-full md:w-1/2 bg-black/40 relative h-[400px] md:h-auto overflow-hidden group">
-                <img id="mainImage" class="w-full h-full object-cover filter grayscale.opacity-80 transition-all duration-1000">
-                <div id="scanLine" class="absolute inset-0 bg-gradient-to-b from-transparent via-indigo-500/30 to-transparent h-full w-full -translate-y-full hidden"></div>
-                <div class="absolute top-4 left-4">
-                    <span class="bg-black/60 backdrop-blur text-white text-[10px] px-2 py-1 rounded border border-white/10">SECURE API</span>
+    <div class="flex-1 bg-black relative overflow-y-auto p-4 lg:p-12 flex items-center justify-center">
+        <!-- 網格背景 -->
+        <div class="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none"></div>
+
+        <div class="w-full max-w-6xl glass rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row opacity-0 translate-y-10 transition-all duration-1000" id="resultCard">
+            
+            <!-- 產品圖片 -->
+            <div class="w-full md:w-1/2 bg-void-900 relative h-[400px] md:h-auto overflow-hidden group border-b md:border-b-0 md:border-r border-white/5">
+                <img id="mainImage" class="w-full h-full object-cover opacity-80 grayscale transition-all duration-1000">
+                
+                <!-- 掃描特效 -->
+                <div id="scanLine" class="absolute inset-0 bg-gradient-to-b from-transparent via-indigo-500/20 to-transparent h-full w-full -translate-y-full hidden"></div>
+                
+                <div class="absolute top-6 left-6">
+                    <span class="bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full border border-white/10 tracking-wide">AI ENHANCED</span>
                 </div>
             </div>
 
-            <div class="w-full md:w-1/2 p-8 flex flex-col space-y-6">
-                <div class="flex flex-wrap gap-2" id="outTags"></div>
-                <input type="text" id="outTitle" class="w-full bg-transparent text-2xl font-bold text-white border-none p-0 focus:ring-0 placeholder-gray-700" placeholder="等待生成..." readonly>
-                <div class="flex items-end gap-2 border-b border-white/10 pb-4">
-                    <span class="text-sm text-gray-400 mb-1">預估售價</span>
-                    <div class="text-4xl font-bold text-green-400">NT$ <span id="outPrice">0</span></div>
+            <!-- 產品資訊 -->
+            <div class="w-full md:w-1/2 p-8 lg:p-12 flex flex-col space-y-8 bg-gradient-to-br from-void-800/50 to-void-900/50">
+                
+                <div class="space-y-4">
+                    <div class="flex flex-wrap gap-2" id="outTags">
+                        <!-- Tags 會插在這裡 -->
+                    </div>
+                    
+                    <input type="text" id="outTitle" class="w-full bg-transparent text-3xl md:text-4xl font-bold text-white border-none p-0 focus:ring-0 placeholder-gray-700 leading-tight" placeholder="Generating Title..." readonly>
+                    
+                    <div class="flex items-baseline gap-3 pt-2">
+                        <span class="text-sm text-gray-500 font-medium tracking-wide">ESTIMATED</span>
+                        <div class="text-3xl font-mono text-white">NT$ <span id="outPrice" class="text-indigo-400">0</span></div>
+                    </div>
                 </div>
-                <div>
-                    <h3 class="text-xs font-bold text-gray-500 uppercase mb-2">商品賣點</h3>
-                    <ul class="space-y-2" id="outBullets"></ul>
+
+                <div class="space-y-3">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest">Highlights</h3>
+                    <ul class="space-y-3" id="outBullets">
+                        <!-- Bullets 會插在這裡 -->
+                    </ul>
                 </div>
-                <div class="flex-1">
-                    <h3 class="text-xs font-bold text-gray-500 uppercase mb-2">詳細說明</h3>
-                    <textarea id="outDesc" class="w-full h-32 bg-black/20 rounded-lg p-3 text-sm text-gray-300 border border-white/10 resize-none focus:outline-none" readonly></textarea>
+
+                <div class="space-y-3 flex-1">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest">Description</h3>
+                    <textarea id="outDesc" class="w-full h-40 bg-white/5 rounded-xl p-4 text-sm text-gray-300 border border-white/5 resize-none focus:outline-none focus:bg-white/10 transition" readonly></textarea>
+                </div>
+
+                <div class="pt-6 border-t border-white/5 flex gap-4">
+                    <button class="flex-1 bg-white text-black font-bold py-4 rounded-xl hover:bg-gray-200 transition shadow-lg shadow-white/10">Publish</button>
+                    <button class="px-6 rounded-xl border border-white/10 hover:bg-white/5 transition text-gray-400 hover:text-white">Save</button>
                 </div>
             </div>
         </div>
@@ -121,6 +207,7 @@
 
         let uploadedFile = null;
 
+        // 圖片上傳 (使用 change 事件最穩)
         els.fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -128,12 +215,16 @@
 
             const reader = new FileReader();
             reader.onload = (e) => {
+                // UI 更新
                 els.thumbPreview.src = e.target.result;
                 els.thumbPreview.classList.remove('opacity-0');
-                els.uploadPlaceholder.classList.add('hidden');
+                els.uploadPlaceholder.classList.add('opacity-0', 'scale-95'); // 隱藏文字
+                
                 els.mainImage.src = e.target.result;
-                els.mainImage.classList.add('grayscale', 'opacity-80'); 
+                els.mainImage.classList.add('grayscale');
                 els.mainImage.classList.remove('img-enhanced');
+                
+                // 顯示控制區
                 els.controls.classList.remove('opacity-50', 'pointer-events-none');
                 els.resultCard.classList.remove('opacity-0', 'translate-y-10');
                 els.errorLog.classList.add('hidden');
@@ -141,12 +232,109 @@
             reader.readAsDataURL(file);
         });
 
+        // 執行 AI
         els.runBtn.addEventListener('click', async () => {
             if (!uploadedFile) return;
 
+            // Loading 狀態
             els.runBtn.disabled = true;
             els.btnText.classList.add('hidden');
             els.btnLoading.classList.remove('hidden');
             els.scanLine.classList.remove('hidden');
             els.scanLine.classList.add('animate-scan');
-            els.errorLog.classList.add...' }]} ) } ); const data=await response.json(); if(!response.ok){ throw new Error(data.error || "Server Error"); } const text=data.candidates[0].content.parts[0].text; const cleanJson=text.replace(/```json|```/g,'').trim(); const resultData=JSON.parse(cleanJson); setTimeout(()=>{ els.mainImage.classList.remove('grayscale','opacity-80'); els.mainImage.classList.add('img-enhanced'); },500); await typeWriter(els.title,resultData.title); els.price.innerText=parseInt(resultData.price).toLocaleString(); els.desc.value=resultData.description; els.bullets.innerHTML=resultData.highlights.map(h=> `<li class="flex items-start text-sm text-gray-300"><span class="mr-2 text-indigo-400">✓</span> ${h}</li>` ).join(''); els.tags.innerHTML=resultData.tags.map(t=> `<span class="bg-indigo-500/20 text-indigo-300 text-[10px] px-2 py-1 rounded">#${t}</span>` ).join(''); } catch(error){ console.error(error); els.errorLog.classList.remove('hidden'); els.errorLog.innerHTML=`錯誤: ${error.message}<br>請確認已在 Cloudflare 設定 GEMINI_API_KEY`; } finally { els.runBtn.disabled=false; els.btnText.classList.remove('hidden'); els.btnLoading.classList.add('hidden'); els.scanLine.classList.add('hidden'); els.scanLine.classList.remove('animate-scan'); } }); async function typeWriter(element,text){ element.value=""; for (let i=0;i<text.length;i++){ element.value+=text.charAt(i); await new Promise(r=>setTimeout(r,20)); } } </script> </body> </html> EOF
+            els.errorLog.classList.add('hidden');
+
+            // 清空舊資料
+            els.title.value = "Analyzing...";
+            els.price.innerText = "0";
+            els.bullets.innerHTML = "";
+            els.tags.innerHTML = "";
+            els.desc.value = "";
+
+            try {
+                // 1. 轉 Base64
+                const base64Data = await new Promise(resolve => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                    reader.readAsDataURL(uploadedFile);
+                });
+
+                // 2. 呼叫後端 (使用 Cloudflare Worker)
+                const response = await fetch('/gemini', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        prompt: "你是一個高端精品拍賣專家。請分析這張圖片，回傳純 JSON (無 Markdown)。欄位：title (繁體中文標題，精簡有力), price (純數字，台幣預估), highlights (3個賣點，繁體中文), description (專業描述，強調質感), tags (3個英文標籤)",
+                        imageBase64: base64Data,
+                        mimeType: uploadedFile.type
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                // 3. 解析資料
+                const text = data.candidates[0].content.parts[0].text;
+                const cleanJson = text.replace(/```json|```/g, '').trim();
+                const resultData = JSON.parse(cleanJson);
+
+                // 4. 更新 UI (圖片變彩色)
+                setTimeout(() => {
+                    els.mainImage.classList.remove('grayscale');
+                    els.mainImage.classList.add('img-enhanced');
+                }, 500);
+
+                await typeWriter(els.title, resultData.title);
+                animatePrice(els.price, parseInt(resultData.price));
+                els.desc.value = resultData.description;
+                
+                els.bullets.innerHTML = resultData.highlights.map(h => 
+                    `<li class="flex items-start text-sm text-gray-400"><span class="mr-3 text-indigo-400 mt-1">●</span> ${h}</li>`
+                ).join('');
+
+                els.tags.innerHTML = resultData.tags.map(t => 
+                    `<span class="bg-white/5 text-gray-400 text-[10px] px-3 py-1 rounded-full border border-white/5 uppercase tracking-wider">#${t}</span>`
+                ).join('');
+
+            } catch (error) {
+                console.error(error);
+                els.errorLog.classList.remove('hidden');
+                els.errorLog.innerText = "Server Error: " + error.message;
+            } finally {
+                els.runBtn.disabled = false;
+                els.btnText.classList.remove('hidden');
+                els.btnLoading.classList.add('hidden');
+                els.scanLine.classList.add('hidden');
+                els.scanLine.classList.remove('animate-scan');
+            }
+        });
+
+        // 動畫特效
+        async function typeWriter(element, text) {
+            element.value = "";
+            for (let i = 0; i < text.length; i++) {
+                element.value += text.charAt(i);
+                await new Promise(r => setTimeout(r, 15));
+            }
+        }
+
+        function animatePrice(element, endValue) {
+            let startValue = 0;
+            const duration = 1000;
+            const startTime = performance.now();
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const current = Math.floor(startValue + (endValue - startValue) * (1 - Math.pow(1 - progress, 4)));
+                element.innerText = current.toLocaleString();
+                if (progress < 1) requestAnimationFrame(update);
+            }
+            requestAnimationFrame(update);
+        }
+    </script>
+
+</body>
+</html>
