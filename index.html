@@ -1,618 +1,437 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
-
+<html lang="zh-TW" class="dark">
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>SnapSell App - AI 自動上架系統</title>
-
+    <title>SnapSell AI - 智能拍賣生成器</title>
+    <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <script type="importmap">
-
-      {
-
-        "imports": {
-
-          "@google/generative-ai": "https://esm.run/@google/generative-ai"
-
+    <!-- 設定 Tailwind 的設定檔來支援自定義顏色 -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            900: '#0f172a',
+                            800: '#1e293b',
+                            700: '#334155',
+                        }
+                    },
+                    animation: {
+                        'gradient': 'gradient 8s linear infinite',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        gradient: {
+                            '0%, 100%': {
+                                'background-size': '200% 200%',
+                                'background-position': 'left center'
+                            },
+                            '50%': {
+                                'background-size': '200% 200%',
+                                'background-position': 'right center'
+                            },
+                        },
+                    },
+                }
+            }
         }
-
-      }
-
     </script>
-
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
+    <!-- Google AI SDK -->
+    <script type="importmap">
+      {
+        "imports": {
+          "@google/generative-ai": "https://esm.run/@google/generative-ai"
+        }
+      }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: #0b0f19;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(79, 70, 229, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(147, 51, 234, 0.1) 0%, transparent 40%);
+            color: #e2e8f0;
+        }
+        
+        /* 隱藏 Scrollbar 但保持功能 */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-
-        .loader {
-
-            border: 3px solid #f3f3f3;
-
-            border-radius: 50%;
-
-            border-top: 3px solid #4f46e5;
-
-            width: 24px;
-
-            height: 24px;
-
-            -webkit-animation: spin 1s linear infinite; /* Safari */
-
-            animation: spin 1s linear infinite;
-
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
-        @keyframes spin {
-
-            0% { transform: rotate(0deg); }
-
-            100% { transform: rotate(360deg); }
-
+        .input-hidden { opacity: 0; width: 0.1px; height: 0.1px; position: absolute; }
+        
+        /* 圖片處理的掃描線效果 */
+        .scan-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, transparent, rgba(99, 102, 241, 0.5), transparent);
+            transform: translateY(-100%);
+            animation: scan 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            display: none;
         }
-
-        .ai-sparkle {
-
-            animation: pulse 2s infinite;
-
+        @keyframes scan {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
         }
-
-        @keyframes pulse {
-
-            0% { opacity: 0.5; }
-
-            50% { opacity: 1; }
-
-            100% { opacity: 0.5; }
-
-        }
-
     </style>
-
 </head>
-
-<body class="h-screen flex flex-col md:flex-row overflow-hidden">
-
-
-
-    <!-- 左側：控制台 -->
-
-    <div class="w-full md:w-1/3 bg-white border-r border-gray-200 flex flex-col h-full overflow-y-auto z-10 shadow-lg">
-
-        <div class="p-6 border-b border-gray-100">
-
-            <h1 class="text-2xl font-bold text-indigo-600 flex items-center gap-2">
-
-                SnapSell <span class="text-xs bg-indigo-100 text-indigo-600 px-2 py-1 rounded-full">Pro</span>
-
-            </h1>
-
-            <p class="text-sm text-gray-500 mt-1">AI 極速上架工具</p>
-
+<body class="h-screen flex flex-col lg:flex-row overflow-hidden selection:bg-indigo-500 selection:text-white">
+    <!-- 左側：操作區 -->
+    <div class="w-full lg:w-[400px] flex flex-col border-r border-white/5 bg-dark-900/50 backdrop-blur-xl relative z-20">
+        <!-- Header -->
+        <div class="p-6 border-b border-white/5">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                </div>
+                <span class="text-xl font-bold tracking-tight text-white">SnapSell <span class="text-indigo-400">AI</span></span>
+            </div>
         </div>
 
-
-
-        <div class="p-6 flex-1 space-y-6">
-
-            
-
-            <!-- API Key 輸入 (為了演示方便直接做在前端) -->
-
-            <div>
-
-                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">1. 設定 AI 金鑰</label>
-
-                <input type="password" id="apiKey" placeholder="貼上你的 Google Gemini API Key" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
-
-                <p class="text-xs text-gray-400 mt-1">需要 Key 才能驅動 AI 識別 (資料僅存在瀏覽器)</p>
-
-            </div>
-
-
-
+        <!-- Scrollable Content -->
+        <div class="flex-1 overflow-y-auto p-6 space-y-8">
             <!-- 上傳區 -->
-
-            <div>
-
-                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">2. 上傳商品照</label>
-
-                <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:bg-gray-50 transition cursor-pointer relative" id="dropZone">
-
-                    <input type="file" id="imageInput" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-
-                    <div id="uploadPlaceholder">
-
-                        <div class="text-4xl mb-2">📸</div>
-
-                        <p class="text-sm font-medium text-gray-600">點擊或拖曳照片至此</p>
-
-                        <p class="text-xs text-gray-400 mt-1">AI 將自動修圖與撰寫文案</p>
-
+            <div class="space-y-3">
+                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider ml-1">1. 商品照片</label>
+                <div class="relative group cursor-pointer" onclick="document.getElementById('imageInput').click()">
+                    <div class="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl opacity-20 group-hover:opacity-100 transition duration-500 blur"></div>
+                    <div class="relative h-48 rounded-xl bg-dark-800 border border-white/10 flex flex-col items-center justify-center text-center p-4 hover:bg-dark-700 transition duration-300 overflow-hidden" id="dropZone">
+                        <img id="previewThumb" class="absolute inset-0 w-full h-full object-cover opacity-50 hidden transition-transform duration-700 hover:scale-105">
+                        <div id="uploadText" class="z-10">
+                            <div class="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-3 group-hover:bg-indigo-500 group-hover:text-white transition-colors duration-300">
+                                <svg class="w-6 h-6 text-gray-400 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            </div>
+                            <span class="text-sm text-gray-300 font-medium">點擊或拖曳上傳</span>
+                        </div>
                     </div>
-
-                    <img id="previewImage" class="hidden max-h-48 mx-auto rounded-lg shadow-sm object-contain">
-
+                    <input type="file" id="imageInput" accept="image/*" class="input-hidden">
                 </div>
-
             </div>
 
-
-
-            <!-- AI 設定 -->
-
-            <div id="processSection" class="opacity-50 pointer-events-none transition-opacity duration-300">
-
-                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">3. AI 處理選項</label>
-
-                <div class="space-y-3">
-
-                    <label class="flex items-center space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-indigo-50 border-indigo-200 bg-indigo-50">
-
-                        <input type="checkbox" checked class="text-indigo-600 focus:ring-indigo-500 h-4 w-4 rounded">
-
-                        <span class="text-sm text-gray-700 font-medium">智能去背與修整雜物</span>
-
-                    </label>
-
-                    <label class="flex items-center space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-indigo-50 border-indigo-200 bg-indigo-50">
-
-                        <input type="checkbox" checked class="text-indigo-600 focus:ring-indigo-500 h-4 w-4 rounded">
-
-                        <span class="text-sm text-gray-700 font-medium">生成 SEO 標題與描述</span>
-
-                    </label>
-
-                    <label class="flex items-center space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-indigo-50 border-indigo-200 bg-indigo-50">
-
-                        <input type="checkbox" checked class="text-indigo-600 focus:ring-indigo-500 h-4 w-4 rounded">
-
-                        <span class="text-sm text-gray-700 font-medium">查詢市場行情估價</span>
-
-                    </label>
-
-                </div>
-
-
-
-                <button id="generateBtn" class="w-full mt-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-lg font-bold shadow-lg hover:shadow-xl transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
-
-                    <span id="btnText">✨ 開始 AI 生成</span>
-
-                    <div id="btnLoader" class="loader hidden border-white border-t-transparent"></div>
-
-                </button>
-
-            </div>
-
-        </div>
-
-    </div>
-
-
-
-    <!-- 右側：即時預覽區 -->
-
-    <div class="flex-1 bg-gray-100 p-4 md:p-10 overflow-y-auto relative">
-
-        <div class="max-w-2xl mx-auto">
-
-            <div class="flex justify-between items-center mb-6">
-
-                <h2 class="text-xl font-bold text-gray-700">生成結果預覽</h2>
-
-                <span class="text-sm text-gray-500" id="statusText">等待上傳...</span>
-
-            </div>
-
-
-
-            <!-- 拍賣頁面卡片 -->
-
-            <div class="bg-white rounded-2xl shadow-xl overflow-hidden min-h-[600px] relative transition-all duration-500" id="listingCard">
-
+            <!-- 選項 -->
+            <div class="space-y-3 opacity-50 pointer-events-none transition-all duration-300" id="optionsArea">
+                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider ml-1">2. AI 處理設定</label>
                 
-
-                <!-- 遮罩層 (等待中) -->
-
-                <div id="loadingOverlay" class="absolute inset-0 bg-white/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center hidden">
-
-                    <div class="text-6xl mb-4 ai-sparkle">🤖</div>
-
-                    <h3 class="text-xl font-bold text-gray-800 mb-2">AI 正在工作中...</h3>
-
-                    <p class="text-gray-500 text-sm" id="loadingStep">正在分析圖片視覺特徵...</p>
-
+                <div class="glass-panel rounded-xl p-4 space-y-3">
+                    <label class="flex items-center justify-between cursor-pointer group">
+                        <span class="text-sm text-gray-300 group-hover:text-white transition">自動去背與修圖</span>
+                        <div class="w-10 h-5 bg-indigo-600 rounded-full relative"><div class="absolute right-1 top-1 w-3 h-3 bg-white rounded-full shadow-sm"></div></div>
+                    </label>
+                    <div class="h-px bg-white/5"></div>
+                    <label class="flex items-center justify-between cursor-pointer group">
+                        <span class="text-sm text-gray-300 group-hover:text-white transition">生成 SEO 關鍵字</span>
+                        <div class="w-10 h-5 bg-indigo-600 rounded-full relative"><div class="absolute right-1 top-1 w-3 h-3 bg-white rounded-full shadow-sm"></div></div>
+                    </label>
+                    <div class="h-px bg-white/5"></div>
+                    <label class="flex items-center justify-between cursor-pointer group">
+                        <span class="text-sm text-gray-300 group-hover:text-white transition">市場價格分析</span>
+                        <div class="w-10 h-5 bg-indigo-600 rounded-full relative"><div class="absolute right-1 top-1 w-3 h-3 bg-white rounded-full shadow-sm"></div></div>
+                    </label>
                 </div>
 
-
-
-                <!-- 這裡是用來顯示 AI 生成圖片的區域 (模擬) -->
-
-                <div class="w-full h-80 bg-gray-200 relative group overflow-hidden">
-
-                    <img id="resultImage" src="https://placehold.co/800x600?text=Waiting+For+Image" class="w-full h-full object-cover">
-
-                    <div class="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-indigo-600 shadow-sm">
-
-                        ✨ AI Enhanced
-
+                <button id="generateBtn" class="w-full relative group overflow-hidden rounded-xl p-[1px]">
+                    <div class="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 animate-gradient"></div>
+                    <div class="relative bg-dark-900 rounded-xl px-6 py-4 flex items-center justify-center gap-2 group-hover:bg-opacity-90 transition">
+                        <span class="text-white font-bold tracking-wide" id="btnText">✨ 一鍵生成賣場</span>
+                        <svg id="btnIcon" class="w-5 h-5 text-indigo-400 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        
+                        <!-- Loading Spinner -->
+                        <svg id="btnLoader" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
                     </div>
-
-                </div>
-
-
-
-                <div class="p-8">
-
-                    <!-- 標題與價格 -->
-
-                    <div class="flex justify-between items-start mb-4">
-
-                        <div class="flex-1 mr-4">
-
-                            <input type="text" id="outTitle" class="w-full text-2xl font-bold text-gray-800 border-none focus:ring-0 p-0 placeholder-gray-300" placeholder="等待 AI 生成標題..." value="[AI 將自動填寫標題]">
-
-                            <div class="mt-2 flex gap-2" id="outTags">
-
-                                <!-- Tags will go here -->
-
-                                <span class="bg-gray-100 text-gray-400 text-xs px-2 py-1 rounded">Tag</span>
-
-                            </div>
-
-                        </div>
-
-                        <div class="text-right">
-
-                            <p class="text-xs text-gray-400 mb-1">建議售價</p>
-
-                            <div class="flex items-center text-3xl font-bold text-red-500">
-
-                                $<input type="text" id="outPrice" class="w-24 text-right border-none focus:ring-0 p-0 text-red-500 placeholder-red-200" value="0">
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-
-
-                    <hr class="border-gray-100 my-6">
-
-
-
-                    <!-- 詳細描述 -->
-
-                    <div class="space-y-4">
-
-                        <h4 class="font-bold text-gray-700">商品描述</h4>
-
-                        <textarea id="outDescription" rows="8" class="w-full text-gray-600 leading-relaxed border-gray-200 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" placeholder="AI 將根據照片自動撰寫詳細的材質、尺寸、狀況描述..."></textarea>
-
-                    </div>
-
-
-
-                    <!-- 規格屬性 -->
-
-                    <div class="mt-6 bg-gray-50 rounded-xl p-4 grid grid-cols-2 gap-4 text-sm" id="outAttributes">
-
-                        <!-- Attributes will go here -->
-
-                        <div><span class="text-gray-400">類別：</span> <span class="text-gray-800 font-medium">等待分析</span></div>
-
-                        <div><span class="text-gray-400">材質：</span> <span class="text-gray-800 font-medium">等待分析</span></div>
-
-                        <div><span class="text-gray-400">顏色：</span> <span class="text-gray-800 font-medium">等待分析</span></div>
-
-                        <div><span class="text-gray-400">狀況：</span> <span class="text-gray-800 font-medium">等待分析</span></div>
-
-                    </div>
-
-
-
-                    <!-- 底部按鈕 -->
-
-                    <div class="mt-8 flex gap-4">
-
-                        <button class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition">確認發布上架</button>
-
-                        <button class="px-6 border border-gray-300 rounded-xl font-medium text-gray-600 hover:bg-gray-50">儲存草稿</button>
-
-                    </div>
-
-                </div>
-
+                </button>
             </div>
-
         </div>
-
+        
+        <!-- Footer -->
+        <div class="p-6 text-center border-t border-white/5">
+            <p class="text-xs text-gray-500">Powered by Gemini 1.5 Flash</p>
+        </div>
     </div>
 
+    <!-- 右側：預覽區 -->
+    <div class="flex-1 bg-[#0b0f19] relative overflow-y-auto">
+        <!-- 背景裝飾 -->
+        <div class="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-indigo-900/20 to-transparent pointer-events-none"></div>
 
+        <div class="max-w-4xl mx-auto p-4 lg:p-12 relative z-10">
+            <!-- 狀態列 -->
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]"></span>
+                    <span class="text-sm text-gray-400 font-mono">LIVE PREVIEW</span>
+                </div>
+                <div class="flex gap-2">
+                    <button class="px-4 py-2 text-xs font-medium text-white bg-white/10 rounded-lg hover:bg-white/20 transition backdrop-blur-md border border-white/5">電腦版</button>
+                    <button class="px-4 py-2 text-xs font-medium text-gray-400 hover:text-white transition">手機版</button>
+                </div>
+            </div>
+
+            <!-- 主卡片 -->
+            <div class="glass-panel rounded-2xl overflow-hidden shadow-2xl transition-all duration-500 transform" id="resultCard">
+                
+                <div class="grid md:grid-cols-2 gap-0">
+                    <!-- 左：圖片展示 -->
+                    <div class="relative bg-black/40 h-[400px] md:h-auto group overflow-hidden flex items-center justify-center">
+                        <img id="mainImage" src="https://placehold.co/800x800/1e293b/475569?text=Waiting..." class="w-full h-full object-cover transition-transform duration-700">
+                        
+                        <!-- 掃描線動畫 -->
+                        <div id="scanLine" class="scan-effect"></div>
+
+                        <!-- 圖片標籤 -->
+                        <div class="absolute bottom-4 left-4 flex gap-2 opacity-0 group-hover:opacity-100 transition duration-300">
+                            <span class="bg-black/60 backdrop-blur text-white text-xs px-2 py-1 rounded border border-white/10">✨ AI Enhanced</span>
+                        </div>
+                    </div>
+
+                    <!-- 右：商品資訊 -->
+                    <div class="p-8 flex flex-col h-full bg-gradient-to-br from-white/5 to-transparent">
+                        
+                        <div class="flex-1 space-y-6">
+                            <!-- 標題 -->
+                            <div class="space-y-2">
+                                <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider" id="outCategory">類別載入中...</span>
+                                <input type="text" id="outTitle" class="w-full bg-transparent text-2xl md:text-3xl font-bold text-white border-0 p-0 focus:ring-0 placeholder-gray-600 leading-tight" placeholder="等待生成標題..." readonly>
+                            </div>
+
+                            <!-- 價格 -->
+                            <div class="flex items-baseline gap-1">
+                                <span class="text-sm text-gray-400">NT$</span>
+                                <input type="text" id="outPrice" class="bg-transparent text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-300 to-emerald-400 border-0 p-0 w-48 focus:ring-0 placeholder-gray-700" placeholder="0" readonly>
+                            </div>
+
+                            <!-- 描述 -->
+                            <div class="relative">
+                                <textarea id="outDescription" rows="6" class="w-full bg-black/20 rounded-lg p-4 text-gray-300 text-sm leading-relaxed border border-white/5 focus:outline-none resize-none" placeholder="AI 將自動撰寫詳細描述..." readonly></textarea>
+                            </div>
+
+                            <!-- 屬性 Grid -->
+                            <div class="grid grid-cols-2 gap-3" id="outAttributes">
+                                <div class="bg-white/5 rounded-lg p-3 border border-white/5">
+                                    <div class="text-xs text-gray-500 mb-1">材質</div>
+                                    <div class="text-sm text-gray-200">-</div>
+                                </div>
+                                <div class="bg-white/5 rounded-lg p-3 border border-white/5">
+                                    <div class="text-xs text-gray-500 mb-1">狀況</div>
+                                    <div class="text-sm text-gray-200">-</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 底部按鈕 -->
+                        <div class="mt-8 pt-6 border-t border-white/10 flex gap-4">
+                            <button class="flex-1 bg-white text-black py-3 rounded-lg font-bold hover:bg-gray-200 transition shadow-lg shadow-white/10 transform hover:-translate-y-0.5">立即發布</button>
+                            <button class="p-3 rounded-lg border border-white/20 text-white hover:bg-white/10 transition">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- 邏輯處理 -->
-
     <script type="module">
+        // ==========================================
+        // 🔑 設定區域 (請將 API Key 貼在下方引號中)
+        // ==========================================
+        const CONFIG = {
+            API_KEY: "在此貼上你的_API_KEY", 
+            MODEL_NAME: "gemini-1.5-flash"
+        };
+        // ==========================================
 
         import { GoogleGenerativeAI } from "@google/generative-ai";
 
-
-
-        const imageInput = document.getElementById('imageInput');
-
-        const previewImage = document.getElementById('previewImage');
-
-        const uploadPlaceholder = document.getElementById('uploadPlaceholder');
-
-        const processSection = document.getElementById('processSection');
-
-        const generateBtn = document.getElementById('generateBtn');
-
-        const resultImage = document.getElementById('resultImage');
-
-        
+        // DOM Elements
+        const els = {
+            input: document.getElementById('imageInput'),
+            dropZone: document.getElementById('dropZone'),
+            previewThumb: document.getElementById('previewThumb'),
+            uploadText: document.getElementById('uploadText'),
+            optionsArea: document.getElementById('optionsArea'),
+            btn: document.getElementById('generateBtn'),
+            btnText: document.getElementById('btnText'),
+            btnIcon: document.getElementById('btnIcon'),
+            btnLoader: document.getElementById('btnLoader'),
+            mainImage: document.getElementById('mainImage'),
+            scanLine: document.getElementById('scanLine'),
+            // Outputs
+            title: document.getElementById('outTitle'),
+            price: document.getElementById('outPrice'),
+            desc: document.getElementById('outDescription'),
+            cat: document.getElementById('outCategory'),
+            attrs: document.getElementById('outAttributes')
+        };
 
         let uploadedFile = null;
 
-
-
-        // 1. 處理圖片上傳預覽
-
-        imageInput.addEventListener('change', function(e) {
-
+        // 1. 圖片上傳邏輯
+        els.input.addEventListener('change', handleFile);
+        
+        function handleFile(e) {
             const file = e.target.files[0];
-
             if (!file) return;
-
-            
-
             uploadedFile = file;
 
             const reader = new FileReader();
-
-            reader.onload = function(e) {
-
-                previewImage.src = e.target.result;
-
-                resultImage.src = e.target.result; // 同步到右側
-
-                previewImage.classList.remove('hidden');
-
-                uploadPlaceholder.classList.add('hidden');
-
-                processSection.classList.remove('opacity-50', 'pointer-events-none');
-
-                document.getElementById('statusText').innerText = "圖片已就緒";
-
-            }
-
-            reader.readAsDataURL(file);
-
-        });
-
-
-
-        // 2. 轉換 File 為 Base64 (給 Gemini 用)
-
-        async function fileToGenerativePart(file) {
-
-            const base64EncodedDataPromise = new Promise((resolve) => {
-
-                const reader = new FileReader();
-
-                reader.onloadend = () => resolve(reader.result.split(',')[1]);
-
-                reader.readAsDataURL(file);
-
-            });
-
-            return {
-
-                inlineData: { data: await base64EncodedDataPromise, mimeType: file.type },
-
+            reader.onload = (e) => {
+                // 更新左側縮圖
+                els.previewThumb.src = e.target.result;
+                els.previewThumb.classList.remove('hidden');
+                els.uploadText.classList.add('opacity-0'); // 隱藏文字但保留空間
+                
+                // 更新右側主圖
+                els.mainImage.src = e.target.result;
+                els.mainImage.style.filter = "grayscale(100%) blur(2px)"; // 初始狀態比較暗
+                
+                // 啟用按鈕
+                els.optionsArea.classList.remove('opacity-50', 'pointer-events-none');
             };
-
+            reader.readAsDataURL(file);
         }
 
+        // 2. 檔案轉 Base64
+        async function fileToGenerativePart(file) {
+            const base64EncodedDataPromise = new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                reader.readAsDataURL(file);
+            });
+            return {
+                inlineData: { data: await base64EncodedDataPromise, mimeType: file.type },
+            };
+        }
 
+        // 3. 打字機特效 (讓生成過程更有感)
+        async function typeWriter(element, text, speed = 10) {
+            element.value = "";
+            for (let i = 0; i < text.length; i++) {
+                element.value += text.charAt(i);
+                await new Promise(r => setTimeout(r, speed));
+            }
+        }
 
-        // 3. AI 核心邏輯
-
-        generateBtn.addEventListener('click', async () => {
-
-            const apiKey = document.getElementById('apiKey').value;
-
-            if (!apiKey) {
-
-                alert("請先輸入 API Key 才能使用 AI 功能！");
-
+        // 4. AI 執行
+        els.btn.addEventListener('click', async () => {
+            if (!uploadedFile) return;
+            if (CONFIG.API_KEY === "在此貼上你的_API_KEY" || !CONFIG.API_KEY) {
+                alert("⚠️ 請打開程式碼，在第 214 行填入您的 Google API Key 才能運作喔！");
                 return;
-
             }
 
-
-
-            // UI 狀態切換
-
-            const loader = document.getElementById('loadingOverlay');
-
-            const btnText = document.getElementById('btnText');
-
-            const btnLoader = document.getElementById('btnLoader');
-
-            const stepText = document.getElementById('loadingStep');
-
-
-
-            loader.classList.remove('hidden');
-
-            generateBtn.disabled = true;
-
-            btnText.innerText = "處理中...";
-
-            btnLoader.classList.remove('hidden');
-
-
+            // UI Loading 狀態
+            els.btn.disabled = true;
+            els.btnText.innerText = "AI 正在分析中...";
+            els.btnIcon.classList.add('hidden');
+            els.btnLoader.classList.remove('hidden');
+            els.scanLine.style.display = 'block'; // 開始掃描動畫
 
             try {
-
-                // 初始化 Gemini
-
-                const genAI = new GoogleGenerativeAI(apiKey);
-
-                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-
-
+                const genAI = new GoogleGenerativeAI(CONFIG.API_KEY);
+                const model = genAI.getGenerativeModel({ model: CONFIG.MODEL_NAME });
                 const imagePart = await fileToGenerativePart(uploadedFile);
 
-
-
                 const prompt = `
-
-                    你是一個專業的電商拍賣專家。請分析這張圖片，並產生 JSON 格式的回應。
-
+                    分析這張商品圖片，並回傳純 JSON 格式 (不要有 markdown)。
+                    假設你要在高級電商平台販售此商品。
                     
-
-                    請忽略背景雜物，專注於商品主體。
-
-                    
-
-                    請回傳以下欄位：
-
-                    1. title: 吸引人的 SEO 標題 (包含品牌、型號、特點)
-
-                    2. price: 估計的二手市場價格 (台幣，只要數字)
-
-                    3. description: 詳細的商品描述 (包含外觀狀況、材質、適合場景，語氣要親切專業，分段落)
-
-                    4. category: 商品類別
-
-                    5. material: 材質
-
-                    6. color: 顏色
-
-                    7. condition: 外觀狀況 (例如：9成新、全新)
-
-                    8. tags: 5個相關的 hashtags (陣列)
-
-
-
-                    請直接回傳 JSON 字串，不要有 Markdown 標記。
-
+                    欄位需求：
+                    {
+                        "title": "繁體中文標題 (包含品牌、產品名、重點特色)",
+                        "price": "預估二手售價 (純數字，台幣)",
+                        "category": "商品分類 (例如：3C / 家具 / 服飾)",
+                        "description": "一段吸引人的繁體中文文案，強調商品優點、適合情境與材質。",
+                        "material": "材質 (例如：真皮 / 鋁合金)",
+                        "condition": "外觀狀況 (例如：9成新 / 極新)"
+                    }
                 `;
 
-
-
-                // 模擬步驟 1: 修圖 (這裡用 setTimeout 模擬，因為真實修圖 API 需付費)
-
-                stepText.innerText = "正在移除背景雜物與修整光影...";
-
-                await new Promise(r => setTimeout(r, 2000));
-
+                // 模擬修圖延遲 (視覺效果)
+                await new Promise(r => setTimeout(r, 1500));
                 
+                // 圖片變清晰亮麗 (模擬修好圖了)
+                els.mainImage.style.transition = "filter 1s ease";
+                els.mainImage.style.filter = "contrast(1.1) brightness(1.1) saturate(1.1)"; 
 
-                // 模擬修圖效果：稍微調亮一點，讓使用者有感覺變了
-
-                resultImage.style.filter = "brightness(1.1) contrast(1.1)";
-
-
-
-                // 步驟 2: 識別與寫作
-
-                stepText.innerText = "AI 正在識別商品特徵與撰寫文案...";
-
-                
-
+                // 呼叫 AI
                 const result = await model.generateContent([prompt, imagePart]);
-
                 const response = await result.response;
-
                 let text = response.text();
-
                 
-
-                // 清理 JSON 格式 (Gemini 有時會包 markdown)
-
-                text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-
+                // 解析 JSON
+                text = text.replace(/```json|```/g, '').trim();
                 const data = JSON.parse(text);
 
-
-
-                // 填入資料
-
-                document.getElementById('outTitle').value = data.title;
-
-                document.getElementById('outPrice').value = data.price;
-
-                document.getElementById('outDescription').value = data.description;
-
+                // 填入資料 (帶動畫)
+                els.cat.innerText = data.category;
+                await typeWriter(els.title, data.title, 30);
                 
+                // 數字跳動效果
+                let startPrice = 0;
+                const endPrice = parseInt(data.price);
+                const duration = 1000;
+                const startTime = performance.now();
+                
+                function updatePrice(currentTime) {
+                    const elapsed = currentTime - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    // easeOutQuart
+                    const ease = 1 - Math.pow(1 - progress, 4);
+                    
+                    els.price.value = Math.floor(startPrice + (endPrice - startPrice) * ease).toLocaleString();
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(updatePrice);
+                    }
+                }
+                requestAnimationFrame(updatePrice);
 
-                // 填入 Tags
-
-                const tagsHtml = data.tags.map(tag => `<span class="bg-indigo-100 text-indigo-600 text-xs px-2 py-1 rounded">#${tag}</span>`).join('');
-
-                document.getElementById('outTags').innerHTML = tagsHtml;
-
-
-
-                // 填入屬性
-
-                const attrHtml = `
-
-                    <div><span class="text-gray-400">類別：</span> <span class="text-gray-800 font-medium">${data.category}</span></div>
-
-                    <div><span class="text-gray-400">材質：</span> <span class="text-gray-800 font-medium">${data.material}</span></div>
-
-                    <div><span class="text-gray-400">顏色：</span> <span class="text-gray-800 font-medium">${data.color}</span></div>
-
-                    <div><span class="text-gray-400">狀況：</span> <span class="text-gray-800 font-medium">${data.condition}</span></div>
-
+                els.desc.value = data.description; // 描述直接填入，因為太長打字會太久
+                
+                // 更新屬性欄位
+                els.attrs.innerHTML = `
+                    <div class="bg-white/5 rounded-lg p-3 border border-white/5">
+                        <div class="text-xs text-gray-500 mb-1">材質</div>
+                        <div class="text-sm text-gray-200">${data.material}</div>
+                    </div>
+                    <div class="bg-white/5 rounded-lg p-3 border border-white/5">
+                        <div class="text-xs text-gray-500 mb-1">狀況</div>
+                        <div class="text-sm text-gray-200">${data.condition}</div>
+                    </div>
                 `;
 
-                document.getElementById('outAttributes').innerHTML = attrHtml;
-
-
-
-                document.getElementById('statusText').innerText = "AI 生成完成";
-
-
-
             } catch (error) {
-
                 console.error(error);
-
-                alert("發生錯誤：" + error.message + "\n請檢查 API Key 是否正確或網路狀況。");
-
+                alert("發生錯誤，請檢查 API Key 或網路連線。\n" + error.message);
             } finally {
-
                 // 恢復 UI
-
-                loader.classList.add('hidden');
-
-                generateBtn.disabled = false;
-
-                btnText.innerText = "✨ 重新生成";
-
-                btnLoader.classList.add('hidden');
-
+                els.btn.disabled = false;
+                els.btnText.innerText = "✨ 重新生成";
+                els.btnIcon.classList.remove('hidden');
+                els.btnLoader.classList.add('hidden');
+                els.scanLine.style.display = 'none';
             }
-
         });
-
     </script>
-
 </body>
-
 </html>
