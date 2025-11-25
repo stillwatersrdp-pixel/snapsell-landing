@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SnapSell AI - 拍賣神器 (SDK修正版)</title>
+    <title>SnapSell AI - Cloudflare Functions 版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -26,18 +26,6 @@
             }
         }
     </script>
-    <!-- 
-      🔥🔥🔥 關鍵修正 🔥🔥🔥
-      我們指定使用 @0.21.0 版本，這個版本會正確呼叫 v1 API，
-      解決 404 Not Found 的問題。
-    -->
-    <script type="importmap">
-      {
-        "imports": {
-          "@google/generative-ai": "https://esm.run/@google/generative-ai@0.21.0"
-        }
-      }
-    </script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Noto Sans TC', sans-serif; background: #0b0f19; color: #e2e8f0; }
@@ -49,49 +37,34 @@
 
     <!-- 左側控制區 -->
     <div class="w-full lg:w-[450px] bg-dark-900 border-r border-white/10 flex flex-col z-20 shadow-2xl">
-        <div class="p-6 border-b border白/10">
-            <h1 class="text-2xl font-bold text白 tracking-wider">SnapSell <span class="text-indigo-500">AI</span></h1>
-            <p class="text-xs text灰-400 mt-1">智慧拍賣上架助手 (SDK v0.21.0)</p>
+        <div class="p-6 border-b border-white/10">
+            <h1 class="text-2xl font-bold text-white tracking-wider">SnapSell <span class="text-indigo-500">AI</span></h1>
+            <p class="text-xs text-gray-400 mt-1">Serverless Backend Mode</p>
         </div>
 
         <div class="flex-1 overflow-y-auto p-6 space-y-8">
-            <!-- 1. 上傳 -->
             <div class="space-y-3">
                 <label class="text-xs font-bold text-gray-400 uppercase">1. 上傳照片</label>
                 <div class="relative group cursor-pointer" onclick="document.getElementById('fileInput').click()">
                     <div class="h-48 rounded-xl border-2 border-dashed border-gray-700 hover:border-indigo-500 transition flex flex-col items-center justify-center bg-dark-800 relative overflow-hidden">
                         <img id="thumbPreview" class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-500">
                         <div id="uploadPlaceholder" class="text-center z-10 p-4">
-                            <div class="text-4xl mb-2">📷</div>
-                            <p class="text-sm text灰-300">點擊上傳商品</p>
+                            <div class="text-4xl mb-2">☁️</div>
+                            <p class="text-sm text-gray-300">點擊上傳</p>
+                            <p class="text-xs text-gray-500 mt-1">透過 Cloudflare 安全連線</p>
                         </div>
                     </div>
                     <input type="file" id="fileInput" accept="image/*" class="hidden">
                 </div>
             </div>
 
-            <!-- 2. 功能設定 -->
             <div class="space-y-4 opacity-50 pointer-events-none transition-all duration-300" id="controls">
                 <label class="text-xs font-bold text-gray-400 uppercase">2. AI 處理</label>
-                
-                <div class="bg-dark-800 rounded-lg p-4 space-y-3 border border-white/5">
-                    <div class="flex items-center gap-3">
-                        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        <span class="text-sm text-gray-300">API 連線 (v1 endpoint)</span>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        <span class="text-sm text灰-300">生成 SEO 標題與定價</span>
-                    </div>
-                </div>
-
-                <button id="runBtn" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text白 transition shadow-lg flex items-center justify-center gap-2">
+                <button id="runBtn" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-white transition shadow-lg flex items-center justify-center gap-2">
                     <span id="btnText">✨ 一鍵生成賣場</span>
-                    <svg id="btnLoading" class="hidden animate-spin h-5 w-5 text白" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <svg id="btnLoading" class="hidden animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                 </button>
-                
-                <!-- Debug 訊息區 -->
-                <div id="debugLog" class="text-[10px] text-gray-500 font-mono p-2 bg黑/20 rounded hidden"></div>
+                <div id="errorLog" class="hidden p-3 bg-red-900/30 border border-red-500/50 rounded text-red-200 text-xs break-all font-mono"></div>
             </div>
         </div>
     </div>
@@ -99,59 +72,34 @@
     <!-- 右側預覽區 -->
     <div class="flex-1 bg-[#0b0f19] relative overflow-y-auto p-6 lg:p-12">
         <div class="max-w-6xl mx-auto glass rounded-2xl overflow-hidden shadow-2xl flex flex-col md:flex-row opacity-0 translate-y-10 transition-all duration-700" id="resultCard">
-            <!-- 圖片 -->
             <div class="w-full md:w-1/2 bg-black/40 relative h-[400px] md:h-auto overflow-hidden group">
-                <img id="mainImage" class="w-full h-full object-cover filter grayscale opacity-80 transition-all duration-1000">
-                <div id="scanLine" class="absolute inset-0 bg-gradient-to-b.from-transparent via-indigo-500/30 to-transparent h-full w-full -translate-y-full hidden"></div>
+                <img id="mainImage" class="w-full h-full object-cover filter grayscale.opacity-80 transition-all duration-1000">
+                <div id="scanLine" class="absolute inset-0 bg-gradient-to-b from-transparent via-indigo-500/30 to-transparent h-full w-full -translate-y-full hidden"></div>
                 <div class="absolute top-4 left-4">
-                    <span class="bg-black/60 backdrop-blur text白 text-[10px] px-2 py-1 rounded border border-white/10" id="modelUsedTag">AI ENHANCED</span>
+                    <span class="bg-black/60 backdrop-blur text-white text-[10px] px-2 py-1 rounded border border-white/10">SECURE API</span>
                 </div>
             </div>
 
-            <!-- 內容 -->
             <div class="w-full md:w-1/2 p-8 flex flex-col space-y-6">
                 <div class="flex flex-wrap gap-2" id="outTags"></div>
-                <input type="text" id="outTitle" class="w-full bg-transparent text-2xl font-bold text白 border-none p-0 focus:ring-0 placeholder-gray-700" placeholder="等待生成..." readonly>
-                
-                <div class="flex items-end gap-2 border-b border白/10 pb-4">
-                    <span class="text-sm text灰-400 mb-1">預估售價</span>
+                <input type="text" id="outTitle" class="w-full bg-transparent text-2xl font-bold text-white border-none p-0 focus:ring-0 placeholder-gray-700" placeholder="等待生成..." readonly>
+                <div class="flex items-end gap-2 border-b border-white/10 pb-4">
+                    <span class="text-sm text-gray-400 mb-1">預估售價</span>
                     <div class="text-4xl font-bold text-green-400">NT$ <span id="outPrice">0</span></div>
                 </div>
-
                 <div>
-                    <h3 class="text-xs font-bold text灰-500 uppercase mb-2">商品賣點</h3>
+                    <h3 class="text-xs font-bold text-gray-500 uppercase mb-2">商品賣點</h3>
                     <ul class="space-y-2" id="outBullets"></ul>
                 </div>
-
                 <div class="flex-1">
-                    <h3 class="text-xs font-bold text灰-500 uppercase mb-2">詳細說明</h3>
-                    <textarea id="outDesc" class="w-full h-32 bg黑/20 rounded-lg p-3 text-sm text灰-300 border border白/10 resize-none focus:outline-none" readonly></textarea>
-                </div>
-                
-                <div class="flex gap-3 pt-4">
-                    <button class="flex-1 bg白 text-black font-bold py-3 rounded-lg hover:bg-gray-200 transition">確認發布</button>
+                    <h3 class="text-xs font-bold text-gray-500 uppercase mb-2">詳細說明</h3>
+                    <textarea id="outDesc" class="w-full h-32 bg-black/20 rounded-lg p-3 text-sm text-gray-300 border border-white/10 resize-none focus:outline-none" readonly></textarea>
                 </div>
             </div>
         </div>
     </div>
 
-    <script type="module">
-        // ==========================================
-        // 🔑 API 設定
-        // ==========================================
-        const API_KEY = "AIzaSyCox8Z4C4gUjD3JMtU4ywOb3NEBqqNNQ4M"; 
-
-        // 優先使用 gemini-1.5-flash，這是最快且最穩定的版本
-        // 新版 SDK 會自動將其導向正確的 v1 網址
-        const MODEL_CANDIDATES = [
-            "gemini-1.5-flash",
-            "gemini-1.5-flash-latest",
-            "gemini-1.5-pro"
-        ];
-        // ==========================================
-
-        import { GoogleGenerativeAI } from "@google/generative-ai";
-
+    <script>
         const els = {
             fileInput: document.getElementById('fileInput'),
             thumbPreview: document.getElementById('thumbPreview'),
@@ -168,17 +116,10 @@
             bullets: document.getElementById('outBullets'),
             desc: document.getElementById('outDesc'),
             tags: document.getElementById('outTags'),
-            debugLog: document.getElementById('debugLog'),
-            modelTag: document.getElementById('modelUsedTag')
+            errorLog: document.getElementById('errorLog')
         };
 
         let uploadedFile = null;
-
-        function log(msg) {
-            console.log(msg);
-            els.debugLog.classList.remove('hidden');
-            els.debugLog.innerText = msg;
-        }
 
         els.fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
@@ -190,14 +131,12 @@
                 els.thumbPreview.src = e.target.result;
                 els.thumbPreview.classList.remove('opacity-0');
                 els.uploadPlaceholder.classList.add('hidden');
-                
                 els.mainImage.src = e.target.result;
                 els.mainImage.classList.add('grayscale', 'opacity-80'); 
                 els.mainImage.classList.remove('img-enhanced');
-
                 els.controls.classList.remove('opacity-50', 'pointer-events-none');
                 els.resultCard.classList.remove('opacity-0', 'translate-y-10');
-                els.debugLog.classList.add('hidden');
+                els.errorLog.classList.add('hidden');
             };
             reader.readAsDataURL(file);
         });
@@ -210,100 +149,4 @@
             els.btnLoading.classList.remove('hidden');
             els.scanLine.classList.remove('hidden');
             els.scanLine.classList.add('animate-scan');
-            log("SDK 初始化中 (v0.21.0)...");
-
-            try {
-                const genAI = new GoogleGenerativeAI(API_KEY);
-                
-                const base64Data = await new Promise(resolve => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result.split(',')[1]);
-                    reader.readAsDataURL(uploadedFile);
-                });
-
-                const prompt = `
-                    分析這張商品圖片，回傳純 JSON 格式資料，不要 Markdown。
-                    欄位：
-                    {
-                        "title": "繁體中文標題",
-                        "price": "純數字預估售價",
-                        "highlights": ["賣點1", "賣點2", "賣點3"],
-                        "description": "詳細描述",
-                        "tags": ["標籤1", "標籤2"]
-                    }
-                `;
-
-                let success = false;
-                let finalData = null;
-                let usedModelName = "";
-
-                for (const modelName of MODEL_CANDIDATES) {
-                    try {
-                        log(`正在嘗試模型: ${modelName}...`);
-                        const model = genAI.getGenerativeModel({ model: modelName });
-                        
-                        const result = await model.generateContent([
-                            prompt, 
-                            { inlineData: { data: base64Data, mimeType: uploadedFile.type } }
-                        ]);
-
-                        const text = result.response.text().replace(/```json|```/g, '').trim();
-                        finalData = JSON.parse(text);
-                        
-                        success = true;
-                        usedModelName = modelName;
-                        log(`成功！使用模型: ${modelName}`);
-                        break;
-                    } catch (err) {
-                        console.warn(`模型 ${modelName} 失敗:`, err.message);
-                        log(`模型 ${modelName} 失敗，嘗試下一個...`);
-                    }
-                }
-
-                if (!success) {
-                    throw new Error("所有模型都嘗試失敗，請檢查 API Key 權限。");
-                }
-
-                setTimeout(() => {
-                    els.mainImage.classList.remove('grayscale', 'opacity-80');
-                    els.mainImage.classList.add('img-enhanced');
-                }, 500);
-
-                els.modelTag.innerText = `AI: ${usedModelName}`;
-                
-                await typeWriter(els.title, finalData.title);
-                els.price.innerText = parseInt(finalData.price).toLocaleString();
-                els.desc.value = finalData.description;
-                
-                els.bullets.innerHTML = finalData.highlights.map(h => 
-                    `<li class="flex items-start text-sm text-gray-300"><span class="mr-2 text-indigo-400">✓</span> ${h}</li>`
-                ).join('');
-
-                els.tags.innerHTML = finalData.tags.map(t => 
-                    `<span class="bg-indigo-500/20 text-indigo-300 text-[10px] px-2 py-1 rounded">#${t}</span>`
-                ).join('');
-
-            } catch (error) {
-                console.error(error);
-                alert("生成失敗: " + error.message);
-                log("Fatal Error: " + error.message);
-            } finally {
-                els.runBtn.disabled = false;
-                els.btnText.classList.remove('hidden');
-                els.btnLoading.classList.add('hidden');
-                els.scanLine.classList.addಸ;
-                els.scanLine.classList.remove('animate-scan');
-            }
-        });
-
-        async function typeWriter(element, text) {
-            element.value = "";
-            for (let i = 0; i < text.length; i++) {
-                element.value += text.charAt(i);
-                await new Promise(r => setTimeout(r, 20));
-            }
-        }
-    </script>
-
-</body>
-</html>
+            els.errorLog.classList.add...' }]} ) } ); const data=await response.json(); if(!response.ok){ throw new Error(data.error || "Server Error"); } const text=data.candidates[0].content.parts[0].text; const cleanJson=text.replace(/```json|```/g,'').trim(); const resultData=JSON.parse(cleanJson); setTimeout(()=>{ els.mainImage.classList.remove('grayscale','opacity-80'); els.mainImage.classList.add('img-enhanced'); },500); await typeWriter(els.title,resultData.title); els.price.innerText=parseInt(resultData.price).toLocaleString(); els.desc.value=resultData.description; els.bullets.innerHTML=resultData.highlights.map(h=> `<li class="flex items-start text-sm text-gray-300"><span class="mr-2 text-indigo-400">✓</span> ${h}</li>` ).join(''); els.tags.innerHTML=resultData.tags.map(t=> `<span class="bg-indigo-500/20 text-indigo-300 text-[10px] px-2 py-1 rounded">#${t}</span>` ).join(''); } catch(error){ console.error(error); els.errorLog.classList.remove('hidden'); els.errorLog.innerHTML=`錯誤: ${error.message}<br>請確認已在 Cloudflare 設定 GEMINI_API_KEY`; } finally { els.runBtn.disabled=false; els.btnText.classList.remove('hidden'); els.btnLoading.classList.add('hidden'); els.scanLine.classList.add('hidden'); els.scanLine.classList.remove('animate-scan'); } }); async function typeWriter(element,text){ element.value=""; for (let i=0;i<text.length;i++){ element.value+=text.charAt(i); await new Promise(r=>setTimeout(r,20)); } } </script> </body> </html> EOF
