@@ -27,15 +27,12 @@ export async function onRequest(context) {
 
     if (!imageBase64) throw new Error("未接收到圖片");
 
-    // 定義我們要嘗試的模型列表 (優先順序)
+    // 🎯 策略修正：只使用最標準的模型名稱，並改用 v1 正式版 API
     const candidateModels = [
       "gemini-1.5-flash",
-      "gemini-1.5-flash-latest",
-      "gemini-1.5-flash-001",
-      "gemini-1.5-flash-002"
+      "gemini-1.5-pro"
     ];
 
-    // Prompt: 保持你喜歡的「轉售風格」
     const prompt = `
       你是一位專業的二手選物拍賣專家。請分析這張商品圖片，生成一份「社群轉售風格」的文案。
       
@@ -53,9 +50,8 @@ export async function onRequest(context) {
 
     for (const modelName of candidateModels) {
       try {
-        const googleResponse = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
-          {
+        const url = `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent?key=${apiKey}`;
+        const googleResponse = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -72,7 +68,7 @@ export async function onRequest(context) {
         const data = await googleResponse.json();
 
         if (data.error) {
-          console.log(`模型 ${modelName} 失敗: ${data.error.message}`);
+          console.log(`模型 ${modelName} (v1) 失敗: ${data.error.message}`);
           throw new Error(data.error.message);
         }
 
@@ -86,11 +82,10 @@ export async function onRequest(context) {
 
       } catch (e) {
         lastError = e;
-        // 繼續下一個模型
       }
     }
 
-    throw new Error(`所有模型都嘗試失敗。最後錯誤: ${lastError.message}`);
+    throw new Error(`所有模型都失敗 (v1 API)。最後錯誤: ${lastError.message}`);
 
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
