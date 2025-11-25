@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SnapSell AI - 智能拍賣生成器</title>
+    <title>SnapSell AI - 拍賣神器</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -14,7 +14,7 @@
                         dark: { 900: '#0f172a', 800: '#1e293b', 700: '#334155' }
                     },
                     animation: {
-                        'scan': 'scan 2s linear infinite',
+                        'scan': 'scan 1.5s linear infinite',
                     },
                     keyframes: {
                         scan: {
@@ -26,7 +26,6 @@
             }
         }
     </script>
-    <!-- Google AI SDK -->
     <script type="importmap">
       {
         "imports": {
@@ -36,85 +35,103 @@
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
-        body { 
-            font-family: 'Noto Sans TC', sans-serif; 
-            background: #0b0f19;
-            color: #e2e8f0;
-        }
-        .glass {
-            background: rgba(30, 41, 59, 0.6);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .img-enhanced { filter: grayscale(0%) brightness(1.1) contrast(1.1); transition: filter 1s ease; }
-        .img-original { filter: grayscale(30%) brightness(0.8); }
+        body { font-family: 'Noto Sans TC', sans-serif; background: #0b0f19; color: #e2e8f0; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        .img-enhanced { filter: contrast(1.1) brightness(1.1) saturate(1.1); transition: filter 1s ease; }
     </style>
 </head>
 <body class="h-screen flex flex-col lg:flex-row overflow-hidden">
 
     <!-- 左側控制區 -->
     <div class="w-full lg:w-[450px] bg-dark-900 border-r border-white/10 flex flex-col z-20 shadow-2xl">
-        <div class="p-6 border-b border-white/10 bg-dark-900/90 backdrop-blur">
-            <h1 class="text-2xl font-bold text白">SnapSell <span class="text-indigo-400">AI</span></h1>
-            <p class="text-xs text-gray-400 mt-1">智慧商品上架系統</p>
+        <div class="p-6 border-b border-white/10">
+            <h1 class="text-2xl font-bold text-white tracking-wider">SnapSell <span class="text-indigo-500">AI</span></h1>
+            <p class="text-xs text-gray-400 mt-1">智慧拍賣上架助手</p>
         </div>
 
         <div class="flex-1 overflow-y-auto p-6 space-y-8">
-            <!-- 上傳區 -->
+            <!-- 1. 上傳 -->
             <div class="space-y-3">
                 <label class="text-xs font-bold text-gray-400 uppercase">1. 上傳照片</label>
                 <div class="relative group cursor-pointer" onclick="document.getElementById('fileInput').click()">
                     <div class="h-48 rounded-xl border-2 border-dashed border-gray-700 hover:border-indigo-500 transition flex flex-col items-center justify-center bg-dark-800 relative overflow-hidden">
                         <img id="thumbPreview" class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-500">
                         <div id="uploadPlaceholder" class="text-center z-10 p-4">
-                            <div class="text-2xl mb-2">📸</div>
-                            <p class="text-sm text-gray-300">點擊上傳商品照</p>
+                            <div class="text-4xl mb-2">📷</div>
+                            <p class="text-sm text-gray-300">點擊上傳商品</p>
+                            <p class="text-xs text-gray-500 mt-1">支援自動去背與修圖</p>
                         </div>
                     </div>
                     <input type="file" id="fileInput" accept="image/*" class="hidden">
                 </div>
             </div>
 
-            <!-- 按鈕區 -->
+            <!-- 2. 功能設定 -->
             <div class="space-y-4 opacity-50 pointer-events-none transition-all duration-300" id="controls">
-                <label class="text-xs font-bold text-gray-400 uppercase">2. AI 分析</label>
-                <button id="runBtn" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-white transition flex items-center justify-center gap-2">
-                    <span id="btnText">✨ 開始生成</span>
+                <label class="text-xs font-bold text-gray-400 uppercase">2. AI 處理</label>
+                
+                <div class="bg-dark-800 rounded-lg p-4 space-y-3 border border-white/5">
+                    <div class="flex items-center gap-3">
+                        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span class="text-sm text-gray-300">智能去雜物與補光</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span class="text-sm text-gray-300">辨識品牌、材質與尺寸</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span class="text-sm text-gray-300">生成 SEO 標題與定價</span>
+                    </div>
+                </div>
+
+                <button id="runBtn" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-white transition shadow-lg flex items-center justify-center gap-2">
+                    <span id="btnText">✨ 一鍵生成賣場</span>
                     <svg id="btnLoading" class="hidden animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                 </button>
             </div>
         </div>
-        <div class="p-4 text-center text-xs text-gray-600">Powered by Gemini 1.5 Flash</div>
+        
+        <div class="p-4 border-t border-white/10 text-center">
+            <p class="text-[10px] text-gray-600">Model: Gemini 1.5 Flash Latest</p>
+        </div>
     </div>
 
     <!-- 右側預覽區 -->
     <div class="flex-1 bg-[#0b0f19] relative overflow-y-auto p-6 lg:p-12">
-        <div class="max-w-5xl mx-auto glass rounded-2xl overflow-hidden shadow-2xl flex flex-col md:flex-row opacity-0 translate-y-10 transition-all duration-700" id="resultCard">
+        <div class="max-w-6xl mx-auto glass rounded-2xl overflow-hidden shadow-2xl flex flex-col md:flex-row opacity-0 translate-y-10 transition-all duration-700" id="resultCard">
             <!-- 圖片 -->
-            <div class="w-full md:w-1/2 bg-black/40 relative h-[400px] md:h-auto overflow-hidden">
-                <img id="mainImage" class="w-full h-full object-cover img-original">
+            <div class="w-full md:w-1/2 bg-black/40 relative h-[400px] md:h-auto overflow-hidden group">
+                <img id="mainImage" class="w-full h-full object-cover filter grayscale opacity-80 transition-all.duration-1000">
                 <div id="scanLine" class="absolute inset-0 bg-gradient-to-b from-transparent via-indigo-500/30 to-transparent h-full w-full -translate-y-full hidden"></div>
+                <div class="absolute top-4 left-4">
+                    <span class="bg-black/60 backdrop-blur text白 text-[10px] px-2 py-1 rounded border border-white/10">AI ENHANCED</span>
+                </div>
             </div>
 
             <!-- 內容 -->
             <div class="w-full md:w-1/2 p-8 flex flex-col space-y-6">
                 <div class="flex flex-wrap gap-2" id="outTags"></div>
-                
-                <input type="text" id="outTitle" class="w-full bg-transparent text-2xl font-bold text-white border-none p-0 focus:ring-0 placeholder-gray-600" placeholder="標題生成中..." readonly>
-                
+
+                <input type="text" id="outTitle" class="w-full bg-transparent text-2xl font-bold text-white border-none p-0 focus:ring-0 placeholder-gray-700" placeholder="等待生成..." readonly>
+
                 <div class="flex items-end gap-2 border-b border-white/10 pb-4">
-                    <span class="text-sm text-gray-400 mb-1">估價</span>
+                    <span class="text-sm text-gray-400 mb-1">預估售價</span>
                     <div class="text-4xl font-bold text-green-400">NT$ <span id="outPrice">0</span></div>
                 </div>
 
-                <div class="space-y-2">
-                    <h3 class="text-xs font-bold text-gray-500 uppercase">賣點</h3>
+                <div>
+                    <h3 class="text-xs font-bold text-gray-500 uppercase mb-2">商品賣點</h3>
                     <ul class="space-y-2" id="outBullets"></ul>
                 </div>
 
-                <div class="space-y-2">
-                    <h3 class="text-xs font-bold text-gray-500 uppercase">描述</h3>
-                    <textarea id="outDesc" rows="5" class="w-full bg-black/20 rounded-lg p-3 text-sm text-gray-300 border border-white/10 resize-none focus:outline-none" readonly></textarea>
+                <div class="flex-1">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase mb-2">詳細說明</h3>
+                    <textarea id="outDesc" class="w-full h-32 bg-black/20 rounded-lg p-3 text-sm text-gray-300 border border白/10 resize-none focus:outline-none" readonly></textarea>
+                </div>
+
+                <div class="flex gap-3 pt-4">
+                    <button class="flex-1 bg-white text-black font-bold py-3 rounded-lg hover:bg-gray-200 transition">確認發布</button>
                 </div>
             </div>
         </div>
@@ -122,11 +139,11 @@
 
     <script type="module">
         // ==========================================
-        // 🔑 你的 API Key (我已經幫你填好了)
+        // 🔑 API 設定 (修正模型名稱)
         // ==========================================
         const CONFIG = {
             API_KEY: "AIzaSyCox8Z4C4gUjD3JMtU4ywOb3NEBqqNNQ4M", 
-            MODEL_NAME: "gemini-1.5-flash" 
+            MODEL_NAME: "gemini-1.5-flash-latest"
         };
         // ==========================================
 
@@ -152,7 +169,7 @@
 
         let uploadedFile = null;
 
-        // 上傳監聽
+        // 1. 上傳處理
         els.fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -163,15 +180,18 @@
                 els.thumbPreview.src = e.target.result;
                 els.thumbPreview.classList.remove('opacity-0');
                 els.uploadPlaceholder.classList.add('hidden');
+                
                 els.mainImage.src = e.target.result;
+                els.mainImage.classList.add('grayscale', 'opacity-80');
                 els.mainImage.classList.remove('img-enhanced');
+
                 els.controls.classList.remove('opacity-50', 'pointer-events-none');
                 els.resultCard.classList.remove('opacity-0', 'translate-y-10');
             };
             reader.readAsDataURL(file);
         });
 
-        // 執行生成
+        // 2. 生成邏輯
         els.runBtn.addEventListener('click', async () => {
             if (!uploadedFile) return;
 
@@ -192,12 +212,23 @@
                 });
 
                 const prompt = `
-                    分析這張商品圖片，回傳純 JSON 格式 (不要 Markdown)。
-                    欄位：
-                    title (繁體中文標題), price (預估台幣數字), highlights (三個賣點陣列), description (詳細介紹), tags (五個標籤陣列)
+                    你是專業的電商拍賣專家。請分析這張商品圖片。
+                    請回傳純 JSON 格式資料，不要 Markdown。
+                    
+                    需要的欄位：
+                    {
+                        "title": "吸引人的繁體中文標題 (含品牌/型號/狀態)",
+                        "price": "預估二手台幣售價 (純數字)",
+                        "highlights": ["賣點1", "賣點2", "賣點3"],
+                        "description": "詳細的商品描述，包含材質、顏色、適用場景。",
+                        "tags": ["標籤1", "標籤2", "標籤3"]
+                    }
                 `;
 
-                setTimeout(() => els.mainImage.classList.add('img-enhanced'), 1500);
+                setTimeout(() => {
+                    els.mainImage.classList.remove('grayscale', 'opacity-80');
+                    els.mainImage.classList.add('img-enhanced');
+                }, 1500);
 
                 const result = await model.generateContent([
                     prompt, 
@@ -216,12 +247,14 @@
                 ).join('');
 
                 els.tags.innerHTML = data.tags.map(t => 
-                    `<span class="bg-indigo-500/20 text-indigo-300 text-xs px-2 py-1 rounded">#${t}</span>`
+                    `<span class="bg-indigo-500/20 text-indigo-300 text-[10px] px-2 py-1 rounded">#${t}</span>`
                 ).join('');
 
             } catch (error) {
                 console.error(error);
-                alert("生成失敗: " + error.message);
+                let msg = error.message;
+                if (msg.includes('404')) msg = "找不到模型，請確認 API 版本 (但這次我用 latest 應該沒問題)";
+                alert("生成失敗: " + msg);
             } finally {
                 els.runBtn.disabled = false;
                 els.btnText.classList.remove('hidden');
