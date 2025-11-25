@@ -34,8 +34,7 @@ export async function onRequest(context) {
     const attempts = [
       { version: "v1beta", model: "gemini-1.5-flash" },
       { version: "v1beta", model: "gemini-1.5-flash-001" },
-      { version: "v1beta", model: "gemini-1.5-flash-latest" },
-      { version: "v1beta", model: "gemini-1.5-flash-lite" },
+      { version: "v1beta", model: "gemini-1.5-flash-latest" }
     ];
 
     let lastError = null;
