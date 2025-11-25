@@ -255,7 +255,7 @@
         // 🔑 設定區域 (請將 API Key 貼在下方引號中)
         // ==========================================
         const CONFIG = {
-            API_KEY: "在此貼上你的_API_KEY", 
+            API_KEY: "AIzaSyCox8Z4C4gUjD3JMtU4ywOb3NEBqqNNQ4M", 
             MODEL_NAME: "gemini-1.5-flash"
         };
         // ==========================================
@@ -334,7 +334,7 @@
         // 4. AI 執行
         els.btn.addEventListener('click', async () => {
             if (!uploadedFile) return;
-            if (CONFIG.API_KEY === "在此貼上你的_API_KEY" || !CONFIG.API_KEY) {
+            if (CONFIG.API_KEY === "AIzaSyCox8Z4C4gUjD3JMtU4ywOb3NEBqqNNQ4M" || !CONFIG.API_KEY) {
                 alert("⚠️ 請打開程式碼，在第 214 行填入您的 Google API Key 才能運作喔！");
                 return;
             }
