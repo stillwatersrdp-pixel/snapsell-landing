@@ -30,38 +30,68 @@ export async function onRequest(context) {
       title、price、description（分段、有 Emoji、強調甜甜價/割愛/狀況很好）、tags（3-5 個 hashtag）、seller。
     `;
 
-    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-    const googleResponse = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { text: prompt },
-            { inline_data: { mime_type: mimeType, data: imageBase64 } }
-          ]
-        }]
-      })
-    });
+    // 嘗試多種模型與端點組合
+    const attempts = [
+      { version: "v1beta", model: "gemini-1.5-flash-001" },
+      { version: "v1beta", model: "gemini-1.5-flash" },
+      { version: "v1beta", model: "gemini-1.5-pro-001" },
+      { version: "v1beta", model: "gemini-pro-vision" },
+    ];
 
-    const data = await googleResponse.json();
-    if (data.error) throw new Error(`Google API Error: ${data.error.message}`);
+    let lastError = null;
 
-    try {
-      const text = data.candidates[0].content.parts[0].text;
-      const cleanJson = text.replace(/```json|```/g, '').trim();
-      const parsedData = JSON.parse(cleanJson);
-      return new Response(JSON.stringify(parsedData), {
-        headers: { "Content-Type": "application/json" }
-      });
-    } catch (e) {
-      throw new Error("AI 回傳格式解析失敗，請重試");
+    for (const { version, model } of attempts) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/${version}/models/${model}:generateContent?key=${apiKey}`;
+        
+        const googleResponse = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { text: prompt },
+                { inline_data: { mime_type: mimeType, data: imageBase64 } }
+              ]
+            }]
+          })
+        });
+
+        const data = await googleResponse.json();
+        
+        if (data.error) {
+          console.log(`${version}/${model} 失敗: ${data.error.message}`);
+          lastError = data.error.message;
+          continue;
+        }
+
+        // 成功！解析回應
+        const text = data.candidates[0].content.parts[0].text;
+        const cleanJson = text.replace(/```json|```/g, '').trim();
+        const parsedData = JSON.parse(cleanJson);
+        
+        return new Response(JSON.stringify(parsedData), {
+          headers: { 
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+          }
+        });
+
+      } catch (e) {
+        lastError = e.message;
+        continue;
+      }
     }
+
+    throw new Error(`所有模型都失敗。最後錯誤: ${lastError}`);
 
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
-      headers: { "Content-Type": "application/json" }
+      headers: { 
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*"
+      }
     });
   }
 }
